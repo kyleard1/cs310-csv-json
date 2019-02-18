@@ -56,6 +56,26 @@ public class Converter {
     
     */
     
+    
+     public static final int FIELDS = 4;
+    public static final int FIELDS_W_HEADERS = 5;
+    
+    public static String[] getStringArray(ArrayList<String> arr){ 
+
+        String str[] = new String[arr.size()]; 
+        Object[] objArr = arr.toArray(); 
+        int i = 0; 
+        for (Object obj : objArr) { 
+            
+            str[i++] = (String)obj; 
+        } 
+        return str; 
+    } 
+      
+      
+      
+      
+      
     @SuppressWarnings("unchecked")
     public static String csvToJson(String csvString) {
         
@@ -66,16 +86,53 @@ public class Converter {
             CSVReader reader = new CSVReader(new StringReader(csvString));
             List<String[]> full = reader.readAll();
             Iterator<String[]> iterator = full.iterator();
+     
+            JSONObject json = new JSONObject();
+            JSONArray colHeaders = new JSONArray();
+            JSONArray rowHeaders = new JSONArray();
+            JSONArray data = new JSONArray();
+            String [] result;
+            String [] keys = new String [3];
+            keys[0] = "colHeaders";
+            keys[1] = "rowHeaders";
+            keys[2] = "data";
             
-            // INSERT YOUR CODE HERE
+            String [] cols = iterator.next();
             
+            for(String col : cols){
+                
+                colHeaders.add(col);
+            }
+            
+            
+            while(iterator.hasNext()){
+                
+                result = iterator.next();
+                ArrayList<Integer> dataArray = new ArrayList<>();
+                for(int i = 1; i < 3; ++i){
+                    
+                    for(int j = 0; j < result.length; ++j){
+                        
+                        if(i == 1 && j == 0){
+                            rowHeaders.add(result[j]);
+                        }         
+                        else if(i == 2 && j > 0){  
+                            dataArray.add(Integer.parseInt(result[j]));
+                            
+                        }
+                    }
+                }
+                data.add(dataArray);
+            }
+            json.put(keys[0], colHeaders);
+            json.put(keys[1], rowHeaders);
+            json.put(keys[2], data);
+            results = JSONValue.toJSONString(json);    
         }        
         catch(Exception e) { return e.toString(); }
-        
         return results.trim();
-        
+  
     }
-    
     public static String jsonToCsv(String jsonString) {
         
         String results = "";
@@ -84,15 +141,47 @@ public class Converter {
 
             StringWriter writer = new StringWriter();
             CSVWriter csvWriter = new CSVWriter(writer, ',', '"', '\n');
+            JSONParser parser = new JSONParser();
+            JSONObject json = (JSONObject) parser.parse(jsonString);
+            ArrayList<String> colHeadersAL = (ArrayList)json.get("colHeaders");
+            ArrayList<String> rowHeadersAL = (ArrayList)json.get("rowHeaders");
+            ArrayList<String> dataAL = new ArrayList();
+            ArrayList<ArrayList> dataArray = (ArrayList)json.get("data"); 
             
-            // INSERT YOUR CODE HERE
             
-        }
-        
-        catch(Exception e) { return e.toString(); }
-        
-        return results.trim();
-        
+            for(ArrayList a : dataArray){
+                
+                for(Object b : a){
+                    
+                    String c = b.toString();
+                    dataAL.add(c);
+                }
+            }
+            
+            String [] colHeaders = getStringArray(colHeadersAL);
+            String [] rowHeaders = getStringArray(rowHeadersAL);
+            String [] data = getStringArray(dataAL);
+            
+      
+            
+            csvWriter.writeNext(colHeaders);
+            
+            int k = 0;
+            
+            for(int i = 0; i < rowHeaders.length; ++i){
+                
+                String [] csvData = new String [FIELDS_W_HEADERS];
+                csvData [0] = rowHeaders [i];
+              
+                for(int j = 0; j < FIELDS; ++j){
+                    
+                    csvData[j + 1] = data [k++];
+                }
+                csvWriter.writeNext(csvData);    
+            }
+            results = writer.toString();                  
     }
-
+        catch(Exception e) { return e.toString(); }
+        return results.trim();  
+    }
 }
